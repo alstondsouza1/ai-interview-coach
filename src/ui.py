@@ -85,6 +85,7 @@ def _render_sidebar() -> None:
         st.caption("No API keys. No external model. Your resume stays in this session.")
 
         st.markdown("#### Quick start")
+        st.caption("Mock Interview is available in the page navigation.")
         if st.button(
             "Load example profile",
             use_container_width=True,

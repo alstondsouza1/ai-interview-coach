@@ -11,6 +11,7 @@ from src.mock_interview import (
     generate_mock_questions,
     readiness_label,
     summarize_mock_interview,
+    timer_status,
 )
 
 
@@ -80,6 +81,12 @@ def test_readiness_thresholds_require_completion() -> None:
     assert readiness_label(95, 9, 10) == "In progress"
     assert readiness_label(70, 10, 10) == "Nearly ready"
     assert readiness_label(55, 10, 10) == "Developing"
+
+
+def test_timer_status_handles_active_expired_and_clock_skew() -> None:
+    assert timer_status(100.0, 120, 145.9) == (45, 75, False)
+    assert timer_status(100.0, 120, 220.0) == (120, 0, True)
+    assert timer_status(100.0, 120, 90.0) == (0, 120, False)
 
 
 def _answer(

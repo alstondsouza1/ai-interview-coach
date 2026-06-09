@@ -139,6 +139,16 @@ def readiness_label(score: int, completed: int, total: int) -> str:
     return "Needs focused practice"
 
 
+def timer_status(
+    started_at: float, duration_seconds: int, current_time: float
+) -> tuple[int, int, bool]:
+    """Return elapsed seconds, remaining seconds, and timeout status."""
+
+    elapsed = max(0, int(current_time - started_at))
+    remaining = max(0, duration_seconds - elapsed)
+    return elapsed, remaining, elapsed >= duration_seconds
+
+
 def _feedback_areas(items: list[str]) -> list[str]:
     areas = []
     for item in items:
