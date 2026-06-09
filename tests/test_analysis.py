@@ -1,9 +1,15 @@
 """Tests for resume, job, plan, and report analysis."""
 
 from src.job_analysis import analyze_job_description
-from src.models import SkillMatch
+from src.models import (
+    AnswerFeedback,
+    InterviewQuestion,
+    QuestionCategory,
+    SkillMatch,
+)
 from src.preparation_plan import build_preparation_plan
 from src.resume_analysis import analyze_resume
+from src.session_report import build_markdown_report
 
 
 def test_resume_analysis_rewards_sections_and_quantified_bullets() -> None:
@@ -48,3 +54,38 @@ def test_preparation_plan_prioritizes_first_skill_gap() -> None:
 
     assert len(plan) == 7
     assert "Docker" in plan[1].title
+
+
+def test_report_contains_scores_questions_and_plan() -> None:
+    match = SkillMatch(
+        matched_skills=["Python"],
+        missing_skills=["Docker"],
+        match_percentage=50,
+    )
+    role = analyze_job_description("Software Engineering Intern")
+    resume = analyze_resume("EDUCATION\nSKILLS\nPROJECTS\nEXPERIENCE")
+    question = InterviewQuestion(
+        QuestionCategory.TECHNICAL,
+        "Explain a Python project.",
+        "Python",
+        "Checks project depth.",
+    )
+    feedback = AnswerFeedback(
+        score=72,
+        rubric_scores={"Structure": 70},
+        strengths=["Clear example."],
+        weaknesses=["Needs a result."],
+        recommendations=["Add a measured result."],
+        improved_answer="Use a problem, action, result structure.",
+        summary="Good foundation.",
+        word_count=90,
+    )
+    plan = build_preparation_plan(match, role)
+
+    report = build_markdown_report(
+        role, match, resume, [question], {0: feedback}, plan
+    )
+
+    assert "# Interview Preparation Report" in report
+    assert "**Practice score:** 72/100" in report
+    assert "Day 7" in report
