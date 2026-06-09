@@ -37,12 +37,13 @@ class InterviewQuestion:
 
 @dataclass
 class AnswerFeedback:
-    """Scored feedback for a user's interview answer."""
+    """Transparent, rubric-based feedback for a practice answer."""
 
     score: int
+    rubric_scores: dict[str, int]
     strengths: list[str]
     weaknesses: list[str]
     recommendations: list[str]
     improved_answer: str
     summary: str
-
+    word_count: int

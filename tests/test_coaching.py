@@ -1,4 +1,4 @@
-"""Tests for question generation and answer evaluation fallbacks."""
+"""Tests for local question generation and transparent answer evaluation."""
 
 import pytest
 
@@ -7,20 +7,19 @@ from src.models import InterviewQuestion, QuestionCategory, SkillMatch
 from src.question_generator import generate_questions
 
 
-def test_fallback_generates_two_questions_per_category() -> None:
+def test_generator_creates_two_questions_per_category() -> None:
     match = SkillMatch(
         matched_skills=["Python", "Git"],
         missing_skills=["Docker"],
     )
 
-    questions, warning = generate_questions("", "", match)
+    questions = generate_questions("", "", match)
 
-    assert warning is None
     assert len(questions) == 6
     assert [question.category for question in questions].count(
         QuestionCategory.TECHNICAL
     ) == 2
-    assert "Docker" in questions[4].question
+    assert any("Docker" in question.question for question in questions)
 
 
 def test_short_answer_is_rejected() -> None:
@@ -47,9 +46,11 @@ def test_detailed_answer_scores_better_than_generic_answer() -> None:
         "demo, and I learned to add tests earlier in the project."
     )
 
-    generic_feedback, _ = evaluate_answer(question, generic, "")
-    detailed_feedback, _ = evaluate_answer(question, detailed, "")
+    generic_feedback = evaluate_answer(question, generic)
+    detailed_feedback = evaluate_answer(question, detailed)
 
     assert detailed_feedback.score > generic_feedback.score
-    assert any("outcome" in strength.lower() for strength in detailed_feedback.strengths)
-
+    assert (
+        detailed_feedback.rubric_scores["Specificity"]
+        > generic_feedback.rubric_scores["Specificity"]
+    )

@@ -1,8 +1,7 @@
-"""Streamlit entry point for AI Interview Coach."""
+"""Streamlit entry point for Interview Prep Studio."""
 
 from src.ui import run_app
 
 
 if __name__ == "__main__":
     run_app()
-

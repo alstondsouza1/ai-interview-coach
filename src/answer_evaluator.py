@@ -1,150 +1,186 @@
-"""Evaluate practice answers and return actionable coaching feedback."""
+"""Evaluate interview answers with a transparent local rubric."""
 
 from __future__ import annotations
 
-import json
 import re
 
-from src.ai_client import AIClient, AIServiceError
-from src.models import AnswerFeedback, InterviewQuestion
+from src.models import AnswerFeedback, InterviewQuestion, QuestionCategory
+
+RUBRIC_WEIGHTS = {
+    "Structure": 25,
+    "Specificity": 25,
+    "Ownership": 20,
+    "Impact": 20,
+    "Clarity": 10,
+}
 
 
 def evaluate_answer(
-    question: InterviewQuestion,
-    answer: str,
-    job_description: str,
-    ai_client: AIClient | None = None,
-) -> tuple[AnswerFeedback, str | None]:
-    """Score an answer with AI or a deterministic coaching fallback."""
+    question: InterviewQuestion, answer: str, job_description: str = ""
+) -> AnswerFeedback:
+    """Score an answer using observable writing signals.
 
-    clean_answer = answer.strip()
+    The score is a coaching aid, not a judgment of technical correctness.
+    """
+
+    del job_description
+    clean_answer = " ".join(answer.split())
     if len(clean_answer) < 20:
         raise ValueError("Please write at least a few complete sentences.")
 
-    if ai_client is not None:
-        try:
-            data = ai_client.complete_json(
-                _evaluation_system_prompt(),
-                _evaluation_user_prompt(question, clean_answer, job_description),
-            )
-            return _parse_feedback(data), None
-        except (AIServiceError, KeyError, TypeError, ValueError) as exc:
-            return _fallback_feedback(question, clean_answer), str(exc)
-
-    return _fallback_feedback(question, clean_answer), None
-
-
-def _evaluation_system_prompt() -> str:
-    return """
-You are a supportive but honest interview coach for students and entry-level
-software engineering candidates. Evaluate only the answer provided. Return
-valid JSON with: score (integer 0-100), strengths (array), weaknesses (array),
-recommendations (array), improved_answer (string), and summary (string).
-Reward specific examples, clear structure, technical accuracy, ownership, and
-measurable results. Do not claim that an answer is technically correct when
-there is not enough context. Keep feedback concise and actionable.
-""".strip()
-
-
-def _evaluation_user_prompt(
-    question: InterviewQuestion, answer: str, job_description: str
-) -> str:
-    context = {
-        "category": question.category.value,
-        "question": question.question,
-        "focus_area": question.focus_area,
-        "candidate_answer": answer[:6000],
-        "job_description": job_description[:4000],
+    words = clean_answer.split()
+    lower_answer = clean_answer.casefold()
+    signals = _answer_signals(clean_answer, lower_answer, words)
+    rubric_scores = {
+        "Structure": _structure_score(signals),
+        "Specificity": _specificity_score(signals),
+        "Ownership": _ownership_score(signals),
+        "Impact": _impact_score(signals),
+        "Clarity": _clarity_score(clean_answer, words),
     }
-    return "Evaluate this interview answer:\n" + json.dumps(context)
-
-
-def _parse_feedback(data: dict) -> AnswerFeedback:
-    score = max(0, min(100, int(data["score"])))
-    feedback = AnswerFeedback(
-        score=score,
-        strengths=_string_list(data["strengths"]),
-        weaknesses=_string_list(data["weaknesses"]),
-        recommendations=_string_list(data["recommendations"]),
-        improved_answer=str(data["improved_answer"]).strip(),
-        summary=str(data["summary"]).strip(),
+    score = sum(
+        round(rubric_scores[name] * weight / 100)
+        for name, weight in RUBRIC_WEIGHTS.items()
     )
-    if not feedback.summary or not feedback.recommendations:
-        raise ValueError("The AI feedback was incomplete.")
-    return feedback
+    strengths, weaknesses, recommendations = _build_coaching(rubric_scores)
 
-
-def _string_list(value: object) -> list[str]:
-    if not isinstance(value, list):
-        raise TypeError("Expected a list in the AI response.")
-    return [str(item).strip() for item in value if str(item).strip()]
-
-
-def _fallback_feedback(
-    question: InterviewQuestion, answer: str
-) -> AnswerFeedback:
-    """Give basic coaching when no AI provider is configured."""
-
-    words = answer.split()
-    lower_answer = answer.casefold()
-    has_example = any(
-        phrase in lower_answer
-        for phrase in ("for example", "in my project", "when i", "during")
-    )
-    has_result = bool(
-        re.search(r"\b(result|outcome|improved|reduced|increased|learned)\b", lower_answer)
-        or re.search(r"\b\d+(?:\.\d+)?%?\b", answer)
-    )
-    has_action = any(
-        phrase in lower_answer
-        for phrase in ("i built", "i created", "i implemented", "i decided", "i tested")
-    )
-
-    score = 35
-    score += min(25, len(words) // 4)
-    score += 12 if has_example else 0
-    score += 14 if has_action else 0
-    score += 14 if has_result else 0
-    score = min(score, 92)
-
-    strengths = []
-    if len(words) >= 60:
-        strengths.append("The answer includes enough detail to discuss your approach.")
-    if has_example:
-        strengths.append("You used a concrete example instead of staying fully general.")
-    if has_action:
-        strengths.append("Your individual contribution is visible.")
-    if has_result:
-        strengths.append("You included an outcome or lesson.")
-    if not strengths:
-        strengths.append("You made a direct attempt to answer the question.")
-
-    weaknesses = []
-    recommendations = []
-    if len(words) < 60:
-        weaknesses.append("The answer is brief and may leave the interviewer with questions.")
-        recommendations.append("Add context, your actions, and the final result.")
-    if not has_example:
-        weaknesses.append("The answer does not include a specific example.")
-        recommendations.append("Choose one project, class, or team experience as evidence.")
-    if not has_action:
-        weaknesses.append("Your personal actions are not clearly separated from the team's work.")
-        recommendations.append("Use 'I' statements to explain two or three actions you took.")
-    if not has_result:
-        weaknesses.append("The result or lesson learned is unclear.")
-        recommendations.append("End with a measurable result, feedback, or what you learned.")
-
-    improved = (
-        f"Use this structure for your {question.category.value.lower()} answer: "
-        "briefly describe the situation, explain your responsibility, give two specific "
-        "actions you took, and finish with the result and what you learned."
-    )
     return AnswerFeedback(
-        score=score,
+        score=max(0, min(100, score)),
+        rubric_scores=rubric_scores,
         strengths=strengths,
         weaknesses=weaknesses,
         recommendations=recommendations,
-        improved_answer=improved,
-        summary="This local score focuses on detail, ownership, examples, and results.",
+        improved_answer=_revision_framework(question),
+        summary=_score_summary(score),
+        word_count=len(words),
     )
 
+
+def _answer_signals(answer: str, lower_answer: str, words: list[str]) -> dict[str, bool | int]:
+    return {
+        "word_count": len(words),
+        "has_context": any(
+            phrase in lower_answer
+            for phrase in ("during", "when i", "in my", "our project", "the situation")
+        ),
+        "has_task": any(
+            phrase in lower_answer
+            for phrase in ("my task", "my goal", "responsible for", "needed to", "had to")
+        ),
+        "has_action": bool(
+            re.search(
+                r"\bi (built|created|implemented|tested|debugged|designed|decided|"
+                r"organized|asked|reviewed|changed|led|wrote|fixed)\b",
+                lower_answer,
+            )
+        ),
+        "has_result": bool(
+            re.search(
+                r"\b(result|outcome|improved|reduced|increased|saved|completed|"
+                r"learned|successful|feedback)\b",
+                lower_answer,
+            )
+        ),
+        "has_number": bool(re.search(r"\b\d+(?:\.\d+)?%?\b", answer)),
+        "has_example": any(
+            phrase in lower_answer
+            for phrase in ("for example", "specifically", "such as", "in my project")
+        ),
+        "first_person_actions": len(re.findall(r"\bi\b", lower_answer)),
+    }
+
+
+def _structure_score(signals: dict[str, bool | int]) -> int:
+    score = 20
+    score += 20 if signals["has_context"] else 0
+    score += 15 if signals["has_task"] else 0
+    score += 25 if signals["has_action"] else 0
+    score += 20 if signals["has_result"] else 0
+    return score
+
+
+def _specificity_score(signals: dict[str, bool | int]) -> int:
+    score = 30
+    score += 25 if signals["has_example"] else 0
+    score += 25 if signals["has_number"] else 0
+    score += 20 if int(signals["word_count"]) >= 70 else 0
+    return score
+
+
+def _ownership_score(signals: dict[str, bool | int]) -> int:
+    score = 25
+    score += 40 if signals["has_action"] else 0
+    score += min(35, int(signals["first_person_actions"]) * 7)
+    return score
+
+
+def _impact_score(signals: dict[str, bool | int]) -> int:
+    score = 25
+    score += 45 if signals["has_result"] else 0
+    score += 30 if signals["has_number"] else 0
+    return score
+
+
+def _clarity_score(answer: str, words: list[str]) -> int:
+    sentences = [part for part in re.split(r"[.!?]+", answer) if part.strip()]
+    if not sentences:
+        return 20
+    average_length = len(words) / len(sentences)
+    score = 65
+    if 8 <= average_length <= 24:
+        score += 25
+    if 55 <= len(words) <= 220:
+        score += 10
+    return min(100, score)
+
+
+def _build_coaching(
+    rubric_scores: dict[str, int],
+) -> tuple[list[str], list[str], list[str]]:
+    strengths = [
+        f"{name} is working well ({score}/100)."
+        for name, score in rubric_scores.items()
+        if score >= 75
+    ]
+    weaknesses = [
+        f"{name} needs more evidence ({score}/100)."
+        for name, score in rubric_scores.items()
+        if score < 60
+    ]
+    recommendations_by_area = {
+        "Structure": "Use Situation, Task, Action, Result in that order.",
+        "Specificity": "Name the project, challenge, tools, and one concrete detail.",
+        "Ownership": "Use clear 'I' statements for the decisions and work you completed.",
+        "Impact": "Finish with a result, measurement, feedback, or lesson learned.",
+        "Clarity": "Use shorter sentences and remove background that does not support the answer.",
+    }
+    recommendations = [
+        recommendations_by_area[name]
+        for name, score in sorted(rubric_scores.items(), key=lambda item: item[1])[:3]
+        if score < 85
+    ]
+    return (
+        strengths or ["You gave the coach enough text to identify a revision path."],
+        weaknesses or ["No major rubric gap was detected; focus on polishing delivery."],
+        recommendations or ["Practice saying the answer aloud in under two minutes."],
+    )
+
+
+def _revision_framework(question: InterviewQuestion) -> str:
+    if question.category == QuestionCategory.TECHNICAL:
+        return (
+            "Revision plan: state the problem, explain your technical choice, walk through "
+            "your implementation or debugging steps, discuss one tradeoff, and end with the result."
+        )
+    return (
+        "Revision plan: give one sentence of context, state your responsibility, describe "
+        "two actions you personally took, and finish with the result and lesson learned."
+    )
+
+
+def _score_summary(score: int) -> str:
+    if score >= 80:
+        return "Strong draft. Tighten the wording and practice delivering it naturally."
+    if score >= 60:
+        return "Good foundation. Add evidence in the lowest-scoring rubric areas."
+    return "Early draft. Rebuild it around one specific example and a clear result."

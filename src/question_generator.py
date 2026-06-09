@@ -1,137 +1,180 @@
-"""Generate personalized interview questions from resume and job context."""
+"""Build role-aware practice interviews from a curated question bank."""
 
 from __future__ import annotations
 
-import json
-
-from src.ai_client import AIClient, AIServiceError
 from src.models import InterviewQuestion, QuestionCategory, SkillMatch
 
-QUESTION_COUNT = 6
+QUESTION_BANK: dict[QuestionCategory, list[dict[str, object]]] = {
+    QuestionCategory.TECHNICAL: [
+        {
+            "skills": {"Python", "Java", "JavaScript", "TypeScript", "C++", "C#"},
+            "question": "Walk me through a project where you used {skill}. Why did you choose it?",
+            "focus": "{skill}",
+            "why": "Connects a resume skill to your technical decisions and actual contribution.",
+        },
+        {
+            "skills": {"Testing"},
+            "question": "How would you test a new feature before asking a teammate to review it?",
+            "focus": "Testing",
+            "why": "Checks whether quality is part of your normal development process.",
+        },
+        {
+            "skills": {"SQL", "PostgreSQL", "MongoDB"},
+            "question": "A database-backed page has become slow. How would you investigate it?",
+            "focus": "Data and debugging",
+            "why": "Tests structured problem solving without requiring advanced system design.",
+        },
+        {
+            "skills": {"React", "Vue.js", "HTML", "CSS", "JavaScript"},
+            "question": "How would you design a responsive interface that is also accessible?",
+            "focus": "Frontend quality",
+            "why": "Explores usability, accessibility, and implementation tradeoffs.",
+        },
+        {
+            "skills": {"REST APIs", "Flask", "Django", "Node.js"},
+            "question": "Design a small API for a campus event app. Which endpoints would you create?",
+            "focus": "API design",
+            "why": "Evaluates resource modeling, HTTP basics, and clear technical communication.",
+        },
+        {
+            "skills": {"Git"},
+            "question": "Describe your Git workflow when working on a feature with other developers.",
+            "focus": "Git collaboration",
+            "why": "Checks practical teamwork habits used in real engineering teams.",
+        },
+        {
+            "skills": {"Docker", "AWS", "Google Cloud", "Kubernetes"},
+            "question": "What problem does {skill} solve, and when would you use it in a student project?",
+            "focus": "{skill}",
+            "why": "Tests your understanding of a role requirement that may be newer to you.",
+        },
+        {
+            "skills": {"Data Structures"},
+            "question": "How would you choose a data structure for fast lookup and frequent updates?",
+            "focus": "Data structures",
+            "why": "Checks whether you can explain a fundamental tradeoff clearly.",
+        },
+        {
+            "skills": {"Object-Oriented Programming"},
+            "question": "Explain encapsulation using an example from a project or everyday system.",
+            "focus": "Object-oriented design",
+            "why": "Tests fundamentals and your ability to explain technical ideas simply.",
+        },
+    ],
+    QuestionCategory.BEHAVIORAL: [
+        {
+            "skills": {"Teamwork"},
+            "question": "Tell me about a team project where people had different opinions.",
+            "focus": "Collaboration",
+            "why": "Shows how you listen, communicate, and move a group toward a decision.",
+        },
+        {
+            "skills": {"Communication"},
+            "question": "Tell me about a time you explained a technical idea to a non-technical person.",
+            "focus": "Communication",
+            "why": "Entry-level engineers need to adapt explanations to different audiences.",
+        },
+        {
+            "skills": set(),
+            "question": "Describe a mistake you made in a project and what you changed afterward.",
+            "focus": "Ownership",
+            "why": "Interviewers look for honesty, reflection, and evidence of improvement.",
+        },
+        {
+            "skills": set(),
+            "question": "Tell me about a time you had to learn something quickly.",
+            "focus": "Learning agility",
+            "why": "Internships require learning unfamiliar tools with limited guidance.",
+        },
+        {
+            "skills": set(),
+            "question": "Which project are you most proud of, and what was your personal contribution?",
+            "focus": "Project impact",
+            "why": "Helps separate your work from the team's work and reveal what motivates you.",
+        },
+    ],
+    QuestionCategory.SITUATIONAL: [
+        {
+            "skills": set(),
+            "question": "A task is taking longer than expected and the deadline is tomorrow. What do you do?",
+            "focus": "Prioritization",
+            "why": "Checks planning, early communication, and ownership under pressure.",
+        },
+        {
+            "skills": set(),
+            "question": "You receive a vague ticket with no clear acceptance criteria. How do you begin?",
+            "focus": "Clarifying requirements",
+            "why": "Good engineers reduce ambiguity before writing unnecessary code.",
+        },
+        {
+            "skills": set(),
+            "question": "Your code works locally but fails in the shared environment. What are your next steps?",
+            "focus": "Debugging process",
+            "why": "Evaluates calm, methodical troubleshooting and communication.",
+        },
+        {
+            "skills": set(),
+            "question": "A teammate is blocked and asks for help while you have urgent work. How do you respond?",
+            "focus": "Team judgment",
+            "why": "Explores how you balance delivery, empathy, and team outcomes.",
+        },
+        {
+            "skills": set(),
+            "question": "You disagree with feedback on your pull request. What would you do?",
+            "focus": "Code review",
+            "why": "Checks whether you can discuss technical disagreement constructively.",
+        },
+    ],
+}
 
 
 def generate_questions(
     resume_text: str,
     job_description: str,
     skill_match: SkillMatch,
-    ai_client: AIClient | None = None,
-) -> tuple[list[InterviewQuestion], str | None]:
-    """Generate six questions, using a local fallback if AI is unavailable.
+    questions_per_category: int = 2,
+) -> list[InterviewQuestion]:
+    """Select balanced questions based on detected resume and job skills."""
 
-    Returns:
-        A question list and an optional warning explaining why fallback mode ran.
-    """
+    del resume_text, job_description  # Inputs are represented by the analyzed skill match.
+    relevant_skills = set(skill_match.job_skills) | set(skill_match.resume_skills)
+    questions: list[InterviewQuestion] = []
 
-    if ai_client is not None:
-        try:
-            data = ai_client.complete_json(
-                _question_system_prompt(),
-                _question_user_prompt(resume_text, job_description, skill_match),
-            )
-            return _parse_questions(data), None
-        except (AIServiceError, KeyError, TypeError, ValueError) as exc:
-            return _fallback_questions(skill_match), str(exc)
-
-    return _fallback_questions(skill_match), None
-
-
-def _question_system_prompt() -> str:
-    return """
-You are an interview coach for students applying to internships and entry-level
-software engineering roles. Create practical questions at an appropriate
-difficulty. Return valid JSON only with a "questions" array. Every item must
-have "category", "question", "focus_area", and "why_asked". Generate exactly
-six items: two Technical, two Behavioral, and two Situational. Do not invent
-resume experience. Keep each question focused on one topic.
-""".strip()
-
-
-def _question_user_prompt(
-    resume_text: str, job_description: str, skill_match: SkillMatch
-) -> str:
-    context = {
-        "resume": resume_text[:8000],
-        "job_description": job_description[:6000],
-        "matched_skills": skill_match.matched_skills,
-        "missing_skills": skill_match.missing_skills,
-    }
-    return "Create a personalized practice interview from this context:\n" + json.dumps(
-        context
-    )
-
-
-def _parse_questions(data: dict) -> list[InterviewQuestion]:
-    raw_questions = data["questions"]
-    if not isinstance(raw_questions, list) or len(raw_questions) != QUESTION_COUNT:
-        raise ValueError("The AI response did not contain exactly six questions.")
-
-    questions = [
-        InterviewQuestion(
-            category=QuestionCategory(item["category"].title()),
-            question=str(item["question"]).strip(),
-            focus_area=str(item["focus_area"]).strip(),
-            why_asked=str(item["why_asked"]).strip(),
+    for category in QuestionCategory:
+        ranked = sorted(
+            QUESTION_BANK[category],
+            key=lambda item: _question_priority(
+                item["skills"], relevant_skills, set(skill_match.missing_skills)
+            ),
+            reverse=True,
         )
-        for item in raw_questions
-    ]
-    category_counts = {
-        category: sum(question.category == category for question in questions)
-        for category in QuestionCategory
-    }
-    if any(count != 2 for count in category_counts.values()):
-        raise ValueError("The AI response did not include two questions per category.")
-    if any(not question.question for question in questions):
-        raise ValueError("The AI response included an empty question.")
+        for item in ranked[:questions_per_category]:
+            template_skill = _best_template_skill(
+                item["skills"], skill_match.missing_skills, skill_match.matched_skills
+            )
+            questions.append(
+                InterviewQuestion(
+                    category=category,
+                    question=str(item["question"]).format(skill=template_skill),
+                    focus_area=str(item["focus"]).format(skill=template_skill),
+                    why_asked=str(item["why"]),
+                )
+            )
     return questions
 
 
-def _fallback_questions(skill_match: SkillMatch) -> list[InterviewQuestion]:
-    """Create useful questions without sending data to an external service."""
-
-    strongest = _first_or_default(skill_match.matched_skills, "a project you built")
-    second_skill = _first_or_default(skill_match.matched_skills[1:], strongest)
-    gap = _first_or_default(skill_match.missing_skills, "a new technology")
-
-    return [
-        InterviewQuestion(
-            QuestionCategory.TECHNICAL,
-            f"Explain how you used {strongest} in a project. What problem did it solve?",
-            strongest,
-            "Checks whether you can connect a listed skill to hands-on experience.",
-        ),
-        InterviewQuestion(
-            QuestionCategory.TECHNICAL,
-            f"How would you test and debug a feature built with {second_skill}?",
-            second_skill,
-            "Tests your development process and attention to software quality.",
-        ),
-        InterviewQuestion(
-            QuestionCategory.BEHAVIORAL,
-            "Tell me about a time you received difficult feedback on your work.",
-            "Growth mindset",
-            "Entry-level teams value students who can learn from feedback.",
-        ),
-        InterviewQuestion(
-            QuestionCategory.BEHAVIORAL,
-            "Describe a team project where you disagreed with another person. What did you do?",
-            "Teamwork",
-            "Explores communication, listening, and conflict resolution.",
-        ),
-        InterviewQuestion(
-            QuestionCategory.SITUATIONAL,
-            f"You need to use {gap} but have never used it before. How would you get started?",
-            gap,
-            "Evaluates how you learn a skill that appears in the job requirements.",
-        ),
-        InterviewQuestion(
-            QuestionCategory.SITUATIONAL,
-            "A task is taking longer than expected and the deadline is tomorrow. What do you do?",
-            "Prioritization",
-            "Checks communication, planning, and ownership under pressure.",
-        ),
-    ]
+def _question_priority(
+    question_skills: object, relevant_skills: set[str], missing_skills: set[str]
+) -> tuple[int, int]:
+    skills = set(question_skills)
+    return (len(skills & missing_skills), len(skills & relevant_skills))
 
 
-def _first_or_default(items: list[str], default: str) -> str:
-    return items[0] if items else default
-
+def _best_template_skill(
+    question_skills: object, missing_skills: list[str], matched_skills: list[str]
+) -> str:
+    skills = set(question_skills)
+    for candidate in [*missing_skills, *matched_skills]:
+        if candidate in skills:
+            return candidate
+    return sorted(skills)[0] if skills else "a new technology"

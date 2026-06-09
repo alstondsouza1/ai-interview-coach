@@ -1,2 +1,1 @@
-"""Core modules for the AI Interview Coach application."""
-
+"""Core modules for the Interview Prep Studio application."""
