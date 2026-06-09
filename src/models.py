@@ -87,3 +87,30 @@ class PreparationTask:
     description: str
     minutes: int
     category: str
+
+
+@dataclass
+class MockInterviewAnswer:
+    """One submitted answer in a timed mock interview."""
+
+    question_index: int
+    question: InterviewQuestion
+    answer: str
+    feedback: AnswerFeedback
+    time_taken_seconds: int
+    timed_out: bool = False
+
+
+@dataclass
+class MockInterviewSummary:
+    """Aggregate performance for a completed mock interview."""
+
+    overall_score: int
+    readiness_label: str
+    category_scores: dict[str, int]
+    rubric_scores: dict[str, int]
+    strengths: list[str]
+    weaknesses: list[str]
+    completed_questions: int
+    total_questions: int
+    average_time_seconds: int
