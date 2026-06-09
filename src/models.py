@@ -47,3 +47,39 @@ class AnswerFeedback:
     improved_answer: str
     summary: str
     word_count: int
+
+
+@dataclass
+class ResumeInsights:
+    """Measurable resume quality signals and revision advice."""
+
+    word_count: int
+    bullet_count: int
+    quantified_bullet_count: int
+    action_verb_count: int
+    detected_sections: list[str]
+    missing_sections: list[str]
+    score: int
+    recommendations: list[str]
+
+
+@dataclass
+class RoleProfile:
+    """High-level information inferred from a job description."""
+
+    role_family: str
+    seniority: str
+    detected_title: str
+    priority_skills: list[str]
+    emphasis_areas: list[str]
+
+
+@dataclass
+class PreparationTask:
+    """One concrete task in a short interview preparation plan."""
+
+    day: int
+    title: str
+    description: str
+    minutes: int
+    category: str
