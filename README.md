@@ -34,6 +34,20 @@ workspace without using an AI model or sending personal data to an API.
 - Scores answers using an explainable rubric
 - Shows strengths, weaknesses, and an ordered revision checklist
 
+### Mock Interview Mode
+
+- Opens as a dedicated Streamlit page
+- Builds exactly 10 questions from the analyzed resume and job description
+- Uses a 4 technical, 3 behavioral, and 3 situational question balance
+- Shows one question at a time to simulate a real interview
+- Includes a live countdown with 1, 1.5, 2, or 3-minute timing options
+- Records response time and whether an answer exceeded the timer
+- Hides coaching until the complete interview is finished
+- Calculates an overall interview readiness score
+- Identifies repeated strengths and weaknesses across all answers
+- Displays category and rubric performance charts
+- Keeps every answer and score inside the active local session
+
 ### Seven-Day Plan
 
 - Creates a role-specific preparation schedule
@@ -77,6 +91,8 @@ ai-interview-coach/
 ├── app.py
 ├── .streamlit/
 │   └── config.toml              # Theme and upload settings
+├── pages/
+│   └── 1_Mock_Interview.py      # Dedicated mock interview page
 ├── sample_data/
 │   ├── sample_job_description.txt
 │   └── sample_resume.txt
@@ -84,6 +100,8 @@ ai-interview-coach/
 │   ├── answer_evaluator.py      # Transparent answer rubric
 │   ├── job_analysis.py          # Role and job-post analysis
 │   ├── models.py                # Shared data classes
+│   ├── mock_interview.py        # Session analytics and question balance
+│   ├── mock_interview_ui.py     # Timed mock interview interface
 │   ├── preparation_plan.py      # Seven-day plan builder
 │   ├── question_generator.py    # Curated question selection
 │   ├── resume_analysis.py       # Resume readiness checks
@@ -141,8 +159,11 @@ Open `http://localhost:8501` if the browser does not open automatically.
 2. Select **Build my preparation workspace**.
 3. Review the **Overview** and **Resume Lab** tabs.
 4. Write an answer in the **Practice Room** and score it.
-5. Check tasks in the **7-Day Plan**.
-6. Download the preparation report.
+5. Open **Mock Interview** from Streamlit's page navigation.
+6. Complete the timed 10-question interview.
+7. Review category charts and the overall readiness score.
+8. Check tasks in the **7-Day Plan**.
+9. Download the preparation report.
 
 The included resume and job description are fictional sample data.
 
@@ -177,6 +198,33 @@ Job skills are also separated into:
 The main role-match metric uses required qualifications so optional skills do
 not unfairly reduce the candidate's score.
 
+## Running a Mock Interview
+
+The mock interview uses the resume and job analysis already created in the
+main workspace:
+
+1. Build the preparation workspace first.
+2. Open **Mock Interview** from Streamlit's page navigation.
+3. Select a time limit for each question.
+4. Start the interview and answer each question in order.
+5. Submit an answer to move to the next question.
+6. Review results after all 10 answers are complete.
+
+The timer does not delete an answer when time expires. It records the timeout
+and allows the user to finish typing, which keeps the practice session usable
+while still providing pacing feedback.
+
+Readiness labels are intentionally conservative:
+
+| Completed score | Readiness label |
+| ---: | --- |
+| 82-100 | Interview ready |
+| 68-81 | Nearly ready |
+| 52-67 | Developing |
+| 0-51 | Needs focused practice |
+
+An incomplete interview is always labeled **In progress**.
+
 ## Development
 
 Install development dependencies:
@@ -201,6 +249,10 @@ The suite covers:
 - Evidence excerpts for matched skills
 - Balanced question selection
 - Transparent answer scoring
+- Ten-question mock interview balance
+- Countdown timer boundaries
+- Category and rubric score aggregation
+- Interview readiness thresholds
 - Resume structure and quantified bullet checks
 - Job-family and internship detection
 - Seven-day plan generation
@@ -227,16 +279,15 @@ independently during a project review.
 - Keyword presence does not prove experience or proficiency.
 - Answer scoring evaluates structure, not technical truth.
 - Session progress is not saved after the Streamlit session ends.
+- Refreshing or resetting the session clears mock-interview answers.
 - PDFs must contain extractable text.
 - Required/preferred classification depends on clear job-post section labels.
 
 ## Possible Next Features
 
 - Save multiple practice sessions locally
-- Add a timer and full mock-interview mode
 - Add more role families such as cybersecurity and product management
 - Add optional speech recording without cloud processing
-- Support DOCX resumes
 - Add local charts showing score improvement over time
 
 ## License

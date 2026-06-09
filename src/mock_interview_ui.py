@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import time
 
 import streamlit as st
@@ -111,7 +112,7 @@ def _render_landing() -> None:
         <div class="mock-hero">
             <span>TIMED MOCK INTERVIEW</span>
             <h1>Practice the full interview, one question at a time.</h1>
-            <p>10 questions for <b>{role.detected_title}</b>, selected from your
+            <p>10 questions for <b>{html.escape(role.detected_title)}</b>, selected from your
             resume evidence, required skill gaps, and entry-level interview fundamentals.</p>
         </div>
         """,
