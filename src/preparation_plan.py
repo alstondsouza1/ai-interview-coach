@@ -10,7 +10,16 @@ def build_preparation_plan(
 ) -> list[PreparationTask]:
     """Create seven practical tasks based on the role and skill gaps."""
 
-    gaps = skill_match.missing_skills or ["the role's core technical stack"]
+    required_gaps = [
+        skill
+        for skill in skill_match.missing_skills
+        if skill in skill_match.required_skills
+    ]
+    gaps = (
+        required_gaps
+        or skill_match.missing_skills
+        or ["the role's core technical stack"]
+    )
     strengths = skill_match.matched_skills or ["your strongest project"]
     return [
         PreparationTask(

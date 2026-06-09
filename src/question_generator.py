@@ -138,19 +138,33 @@ def generate_questions(
 
     del resume_text, job_description  # Inputs are represented by the analyzed skill match.
     relevant_skills = set(skill_match.job_skills) | set(skill_match.resume_skills)
+    missing_skills = set(skill_match.missing_skills)
+    required_gaps = missing_skills & set(skill_match.required_skills)
+    ordered_gaps = [
+        *[
+            skill
+            for skill in skill_match.missing_skills
+            if skill in skill_match.required_skills
+        ],
+        *[
+            skill
+            for skill in skill_match.missing_skills
+            if skill not in skill_match.required_skills
+        ],
+    ]
     questions: list[InterviewQuestion] = []
 
     for category in QuestionCategory:
         ranked = sorted(
             QUESTION_BANK[category],
             key=lambda item: _question_priority(
-                item["skills"], relevant_skills, set(skill_match.missing_skills)
+                item["skills"], relevant_skills, missing_skills, required_gaps
             ),
             reverse=True,
         )
         for item in ranked[:questions_per_category]:
             template_skill = _best_template_skill(
-                item["skills"], skill_match.missing_skills, skill_match.matched_skills
+                item["skills"], ordered_gaps, skill_match.matched_skills
             )
             questions.append(
                 InterviewQuestion(
@@ -164,10 +178,17 @@ def generate_questions(
 
 
 def _question_priority(
-    question_skills: object, relevant_skills: set[str], missing_skills: set[str]
-) -> tuple[int, int]:
+    question_skills: object,
+    relevant_skills: set[str],
+    missing_skills: set[str],
+    required_gaps: set[str],
+) -> tuple[int, int, int]:
     skills = set(question_skills)
-    return (len(skills & missing_skills), len(skills & relevant_skills))
+    return (
+        len(skills & required_gaps),
+        len(skills & missing_skills),
+        len(skills & relevant_skills),
+    )
 
 
 def _best_template_skill(
