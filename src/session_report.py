@@ -28,21 +28,40 @@ def build_markdown_report(
         f"**Target role:** {role.detected_title}",
         f"**Role family:** {role.role_family}",
         f"**Skill match:** {match.match_percentage:.0f}%",
+        f"**Required skill match:** {match.required_match_percentage:.0f}%",
         f"**Resume readiness:** {resume.score}/100",
         "",
         "## Skill Review",
+        "",
+        "**Required:** " + (", ".join(match.required_skills) or "None detected"),
+        "",
+        "**Preferred:** " + (", ".join(match.preferred_skills) or "None detected"),
         "",
         "**Matched:** " + (", ".join(match.matched_skills) or "None detected"),
         "",
         "**Prepare next:** " + (", ".join(match.missing_skills) or "No gaps detected"),
         "",
-        "## Resume Recommendations",
-        "",
-        *[f"- {item}" for item in resume.recommendations],
-        "",
-        "## Practice Questions",
+        "## Match Evidence",
         "",
     ]
+    for skill in match.matched_skills:
+        lines.append(f"### {skill}")
+        evidence = match.matched_evidence.get(skill, [])
+        lines.extend(f"- {snippet}" for snippet in evidence)
+        if not evidence:
+            lines.append("- No evidence excerpt available.")
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Resume Recommendations",
+            "",
+            *[f"- {item}" for item in resume.recommendations],
+            "",
+            "## Practice Questions",
+            "",
+        ]
+    )
     for index, question in enumerate(questions):
         lines.append(f"### {index + 1}. {question.category.value}: {question.focus_area}")
         lines.append("")

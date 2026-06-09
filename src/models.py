@@ -20,9 +20,13 @@ class SkillMatch:
 
     resume_skills: list[str] = field(default_factory=list)
     job_skills: list[str] = field(default_factory=list)
+    required_skills: list[str] = field(default_factory=list)
+    preferred_skills: list[str] = field(default_factory=list)
     matched_skills: list[str] = field(default_factory=list)
     missing_skills: list[str] = field(default_factory=list)
+    matched_evidence: dict[str, list[str]] = field(default_factory=dict)
     match_percentage: float = 0.0
+    required_match_percentage: float = 0.0
 
 
 @dataclass

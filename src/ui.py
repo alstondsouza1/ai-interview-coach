@@ -13,7 +13,11 @@ from src.models import AnswerFeedback, ResumeInsights, RoleProfile, SkillMatch
 from src.preparation_plan import build_preparation_plan
 from src.question_generator import generate_questions
 from src.resume_analysis import analyze_resume
-from src.resume_parser import ResumeParsingError, extract_text_from_pdf
+from src.resume_parser import (
+    ResumeParsingError,
+    extract_resume_text,
+    validate_resume_text,
+)
 from src.session_report import build_markdown_report
 from src.skill_analysis import compare_skills
 
@@ -36,14 +40,16 @@ def run_app() -> None:
     _render_sidebar()
     _render_header()
 
-    uploaded_file, job_description, question_depth = _render_setup()
+    uploaded_file, pasted_resume, job_description, question_depth = _render_setup()
     if st.button(
         "Build my preparation workspace",
         type="primary",
         use_container_width=True,
         icon=":material/arrow_forward:",
     ):
-        _build_workspace(uploaded_file, job_description, question_depth)
+        _build_workspace(
+            uploaded_file, pasted_resume, job_description, question_depth
+        )
 
     if "skill_match" in st.session_state:
         _render_workspace()
@@ -54,6 +60,8 @@ def run_app() -> None:
 def _initialize_state() -> None:
     st.session_state.setdefault("job_description", "")
     st.session_state.setdefault("sample_resume_text", "")
+    st.session_state.setdefault("pasted_resume_text", "")
+    st.session_state.setdefault("resume_input_method", "Upload PDF or DOCX")
     st.session_state.setdefault("feedback", {})
     st.session_state.setdefault("question_depth", 2)
     st.session_state.setdefault("active_category", "All")
@@ -154,22 +162,45 @@ def _render_setup():
 
     with resume_column:
         st.markdown("### 1. Add your resume")
-        uploaded_file = st.file_uploader(
-            "Upload a PDF",
-            type=["pdf"],
+        input_method = st.radio(
+            "Resume input method",
+            ["Upload PDF or DOCX", "Paste resume text"],
+            key="resume_input_method",
+            horizontal=True,
             label_visibility="collapsed",
-            help="Use a text-based PDF under 5 MB and 10 pages.",
         )
-        if st.session_state.sample_resume_text and uploaded_file is None:
+        uploaded_file = None
+        pasted_resume = ""
+        if input_method == "Upload PDF or DOCX":
+            uploaded_file = st.file_uploader(
+                "Upload a PDF or DOCX",
+                type=["pdf", "docx"],
+                label_visibility="collapsed",
+                help="Use a PDF or DOCX under 5 MB. PDFs are limited to 10 pages.",
+            )
+            st.caption("PDF or DOCX, maximum 5 MB.")
+        else:
+            pasted_resume = st.text_area(
+                "Paste resume text",
+                key="pasted_resume_text",
+                height=205,
+                label_visibility="collapsed",
+                placeholder="Paste the complete text of your resume here...",
+            )
+            st.caption(f"{len(pasted_resume):,} characters")
+
+        if (
+            st.session_state.sample_resume_text
+            and uploaded_file is None
+            and not pasted_resume.strip()
+        ):
             st.markdown(
                 '<div class="input-ready"><b>Example resume ready</b>'
-                "<span>Upload a PDF to replace it.</span></div>",
+                "<span>Add your resume to replace it.</span></div>",
                 unsafe_allow_html=True,
             )
             with st.expander("Preview resume text"):
                 st.text(st.session_state.sample_resume_text[:2800])
-        else:
-            st.caption("PDF only. Text-based resumes work best.")
 
     with job_column:
         st.markdown("### 2. Add the target role")
@@ -190,12 +221,21 @@ def _render_setup():
             key="question_depth",
             help="Choose 6 or 9 total practice questions.",
         )
-    return uploaded_file, job_description, question_depth
+    return uploaded_file, pasted_resume, job_description, question_depth
 
 
-def _build_workspace(uploaded_file, job_description: str, question_depth: int) -> None:
-    if uploaded_file is None and not st.session_state.sample_resume_text:
-        st.error("Upload a PDF resume or load the example profile.")
+def _build_workspace(
+    uploaded_file,
+    pasted_resume: str,
+    job_description: str,
+    question_depth: int,
+) -> None:
+    if (
+        uploaded_file is None
+        and not pasted_resume.strip()
+        and not st.session_state.sample_resume_text
+    ):
+        st.error("Upload a resume, paste resume text, or load the example profile.")
         return
     if len(job_description.strip()) < 80:
         st.error("Paste a fuller job description so the role analysis is useful.")
@@ -203,11 +243,14 @@ def _build_workspace(uploaded_file, job_description: str, question_depth: int) -
 
     try:
         with st.spinner("Building your private preparation workspace..."):
-            resume_text = (
-                extract_text_from_pdf(uploaded_file)
-                if uploaded_file is not None
-                else st.session_state.sample_resume_text
-            )
+            if uploaded_file is not None:
+                resume_text = extract_resume_text(uploaded_file, uploaded_file.name)
+            elif pasted_resume.strip():
+                resume_text = validate_resume_text(pasted_resume)
+            else:
+                resume_text = validate_resume_text(
+                    st.session_state.sample_resume_text, source="example resume"
+                )
             skill_match = compare_skills(resume_text, job_description)
             role_profile = analyze_job_description(job_description)
             resume_insights = analyze_resume(resume_text)
@@ -272,7 +315,11 @@ def _render_overview() -> None:
     total = len(st.session_state.questions)
 
     cards = [
-        ("Role match", f"{match.match_percentage:.0f}%", _match_label(match.match_percentage)),
+        (
+            "Required match",
+            f"{match.required_match_percentage:.0f}%",
+            _match_label(match.required_match_percentage),
+        ),
         ("Resume readiness", f"{resume.score}/100", _resume_label(resume.score)),
         ("Skills to review", str(len(match.missing_skills)), "Prioritized from the job post"),
         ("Practice progress", f"{completed}/{total}", "Answers reviewed"),
@@ -294,12 +341,32 @@ def _render_overview() -> None:
     left, right = st.columns([1.2, 0.8], gap="large")
     with left:
         st.markdown("### Your role-fit snapshot")
-        st.markdown("**Strengths to lead with**")
-        _render_chips(match.matched_skills, "positive")
-        st.markdown("**Skills to prepare or discuss honestly**")
-        _render_chips(match.missing_skills, "attention")
+        required_matches = [
+            skill for skill in match.matched_skills if skill in match.required_skills
+        ]
+        required_gaps = [
+            skill for skill in match.missing_skills if skill in match.required_skills
+        ]
+        st.markdown("**Required skills found on your resume**")
+        _render_chips(required_matches, "positive")
+        st.markdown("**Missing required skills**")
+        _render_chips(required_gaps, "attention")
+        if match.preferred_skills:
+            st.markdown("**Preferred qualifications**")
+            _render_chips(match.preferred_skills, "neutral")
         if not match.job_skills:
             st.info("Few catalog skills were detected. Include more of the full job post.")
+
+        if match.matched_evidence:
+            st.markdown("### Why these skills matched")
+            st.caption(
+                "Each match includes the exact resume text that triggered it."
+            )
+            for skill in match.matched_skills:
+                evidence = match.matched_evidence.get(skill, [])
+                with st.expander(f"{skill} | {len(evidence)} evidence item(s)"):
+                    for snippet in evidence:
+                        st.markdown(f"> {snippet}")
 
     with right:
         st.markdown("### What this role emphasizes")
@@ -581,7 +648,11 @@ def _render_chips(items: list[str], chip_type: str) -> None:
 def _next_moves(
     match: SkillMatch, resume: ResumeInsights
 ) -> list[tuple[str, str, str]]:
-    gap = match.missing_skills[0] if match.missing_skills else "role fundamentals"
+    required_gaps = [
+        skill for skill in match.missing_skills if skill in match.required_skills
+    ]
+    gap_candidates = required_gaps or match.missing_skills
+    gap = gap_candidates[0] if gap_candidates else "role fundamentals"
     resume_move = resume.recommendations[0]
     return [
         ("01", f"Review {gap}", "Learn enough to explain the basics and one practical use case."),
@@ -616,6 +687,7 @@ def _reset_workspace() -> None:
     _clear_results()
     _clear_answer_widgets()
     st.session_state.sample_resume_text = ""
+    st.session_state.pasted_resume_text = ""
     st.session_state.job_description = ""
 
 
@@ -775,6 +847,7 @@ def _apply_styles() -> None:
         }
         .skill-chip.positive { color: #174e39; background: #dff1e5; }
         .skill-chip.attention { color: #884122; background: #f8e2d5; }
+        .skill-chip.neutral { color: #274b60; background: #dceaf4; }
         .emphasis-row, .check-row, .recommendation {
             display: flex; align-items: center; gap: .85rem; margin-bottom: .55rem;
             padding: .78rem .9rem; border: 1px solid var(--line);
