@@ -1,0 +1,14 @@
+Software Engineering Intern
+
+We are looking for a student who enjoys solving problems and learning new
+technologies. The intern will help build and test web applications with our
+engineering team.
+
+Requirements:
+- Experience with Python or Java
+- Knowledge of JavaScript, React, and REST APIs
+- Familiarity with SQL databases, Git, and unit testing
+- Understanding of data structures and object-oriented programming
+- Strong communication and teamwork skills
+- Exposure to Docker and cloud platforms such as AWS is a plus
+

@@ -1,0 +1,24 @@
+JORDAN LEE
+jordan.lee@example.com | github.com/jordanlee
+
+EDUCATION
+B.S. in Computer Science, State University, Expected May 2027
+
+SKILLS
+Python, Java, JavaScript, SQL, Git, Flask, React, HTML, CSS
+
+PROJECTS
+Study Planner Web App
+- Built a Flask and SQLite application used by 40 students.
+- Created REST API endpoints and a responsive HTML/CSS interface.
+- Wrote unit tests with pytest and used GitHub for version control.
+
+Campus Event Finder
+- Worked with a team of four to build a React application.
+- Integrated a public events API and presented the project to faculty.
+
+EXPERIENCE
+Computer Science Tutor, State University
+- Helped first-year students understand Python and data structures.
+- Explained technical ideas using examples and diagrams.
+
