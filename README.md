@@ -2,7 +2,7 @@
 
 Interview Prep Studio is a private, local Streamlit application for students
 and early-career job seekers preparing for software engineering interviews.
-It turns a PDF resume and job description into a practical preparation
+It turns a PDF, DOCX, or pasted resume and job description into a practical preparation
 workspace without using an AI model or sending personal data to an API.
 
 ## What It Does
@@ -11,7 +11,9 @@ workspace without using an AI model or sending personal data to an API.
 
 - Detects the job's role family and seniority
 - Finds technical and professional skills in the job post
+- Separates required skills from preferred qualifications
 - Compares job requirements with skills shown on the resume
+- Shows the exact resume excerpt supporting every matched skill
 - Highlights strengths to discuss and gaps to prepare
 - Identifies themes such as testing, teamwork, ownership, and communication
 
@@ -85,7 +87,7 @@ ai-interview-coach/
 │   ├── preparation_plan.py      # Seven-day plan builder
 │   ├── question_generator.py    # Curated question selection
 │   ├── resume_analysis.py       # Resume readiness checks
-│   ├── resume_parser.py         # PDF validation and extraction
+│   ├── resume_parser.py         # PDF, DOCX, and pasted-text validation
 │   ├── session_report.py        # Markdown export
 │   ├── skill_analysis.py        # Skill extraction and comparison
 │   └── ui.py                    # Streamlit interface and styling
@@ -146,13 +148,34 @@ The included resume and job description are fictional sample data.
 
 ## Using Your Own Resume
 
-1. Upload a text-based PDF resume under 5 MB.
+1. Upload a PDF or DOCX resume under 5 MB, or paste the resume text.
 2. Paste the complete job description, including preferred qualifications.
 3. Choose two or three questions per category.
 4. Build the workspace.
 
+PDF files are limited to 10 pages. DOCX paragraphs and tables are supported.
 Scanned image-only PDFs are not supported because the project does not include
-OCR. Export the resume from a document editor as a text-based PDF first.
+OCR. Export the resume from a document editor as a text-based PDF, use DOCX, or
+paste the text directly.
+
+## Evidence-Backed Matching
+
+The project does not claim that a keyword proves proficiency. Instead, every
+matched skill links back to one or two resume excerpts that caused the match.
+This gives users and judges a clear audit trail:
+
+```text
+Python
+└── "Built a Flask API with Python and PostgreSQL for 40 students."
+```
+
+Job skills are also separated into:
+
+- **Required:** skills listed in requirements or minimum qualifications
+- **Preferred:** skills listed as preferred, optional, a bonus, or a plus
+
+The main role-match metric uses required qualifications so optional skills do
+not unfairly reduce the candidate's score.
 
 ## Development
 
@@ -171,7 +194,11 @@ pytest -q
 The suite covers:
 
 - Empty and invalid PDF uploads
+- DOCX paragraph and table extraction
+- Pasted-resume validation
 - Skill aliases and skill-gap calculations
+- Required and preferred qualification classification
+- Evidence excerpts for matched skills
 - Balanced question selection
 - Transparent answer scoring
 - Resume structure and quantified bullet checks
@@ -201,6 +228,7 @@ independently during a project review.
 - Answer scoring evaluates structure, not technical truth.
 - Session progress is not saved after the Streamlit session ends.
 - PDFs must contain extractable text.
+- Required/preferred classification depends on clear job-post section labels.
 
 ## Possible Next Features
 
