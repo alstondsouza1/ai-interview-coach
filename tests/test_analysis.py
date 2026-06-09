@@ -47,13 +47,18 @@ def test_job_analysis_detects_internship_role_and_emphasis() -> None:
 
 
 def test_preparation_plan_prioritizes_first_skill_gap() -> None:
-    match = SkillMatch(matched_skills=["Python"], missing_skills=["Docker"])
+    match = SkillMatch(
+        matched_skills=["Python"],
+        required_skills=["SQL"],
+        preferred_skills=["Docker"],
+        missing_skills=["Docker", "SQL"],
+    )
     role = analyze_job_description("Software Engineering Intern")
 
     plan = build_preparation_plan(match, role)
 
     assert len(plan) == 7
-    assert "Docker" in plan[1].title
+    assert "SQL" in plan[1].title
 
 
 def test_report_contains_scores_questions_and_plan() -> None:

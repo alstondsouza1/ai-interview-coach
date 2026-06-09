@@ -22,6 +22,19 @@ def test_generator_creates_two_questions_per_category() -> None:
     assert any("Docker" in question.question for question in questions)
 
 
+def test_generator_prioritizes_required_gap_over_preferred_gap() -> None:
+    match = SkillMatch(
+        required_skills=["Data Structures"],
+        preferred_skills=["Docker"],
+        missing_skills=["Data Structures", "Docker"],
+        job_skills=["Data Structures", "Docker"],
+    )
+
+    questions = generate_questions("", "", match)
+
+    assert "data structure" in questions[0].question.casefold()
+
+
 def test_short_answer_is_rejected() -> None:
     question = InterviewQuestion(
         QuestionCategory.BEHAVIORAL, "Tell me about a project.", "Teamwork", "Reason"
