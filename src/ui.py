@@ -81,8 +81,11 @@ def _render_sidebar() -> None:
             """,
             unsafe_allow_html=True,
         )
-        st.markdown('<div class="privacy-pill">100% local and private</div>', unsafe_allow_html=True)
-        st.caption("No API keys. No external model. Your resume stays in this session.")
+        st.markdown('<div class="privacy-pill">Local-first and consent-based</div>', unsafe_allow_html=True)
+        st.caption(
+            "Resume analysis stays local. Optional Foundry IQ coaching sends only "
+            "a reviewed question after consent."
+        )
 
         st.markdown("#### Quick start")
         st.caption("Mock Interview is available in the page navigation.")
@@ -137,7 +140,7 @@ def _render_header() -> None:
                 <span class="kicker">INTERVIEW PREPARATION, MADE PRACTICAL</span>
                 <h1>Know what to prepare.<br><em>Practice with purpose.</em></h1>
                 <p>Turn one resume and one job description into a focused plan you can
-                understand, practice, and improve without sending your data anywhere.</p>
+                understand, practice, and improve while keeping resume analysis local.</p>
                 <div class="hero-points">
                     <span>Role fit</span><span>Resume review</span>
                     <span>Answer coaching</span><span>7-day plan</span>

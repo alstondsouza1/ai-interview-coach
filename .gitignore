@@ -109,6 +109,7 @@ tempCodeRunnerFile.py
 
 # Application-specific local files
 .streamlit/secrets.toml
+data/
 marimo/_static/
 marimo/_lsp/
 __marimo__/

@@ -114,3 +114,24 @@ class MockInterviewSummary:
     completed_questions: int
     total_questions: int
     average_time_seconds: int
+
+
+@dataclass
+class KnowledgeCitation:
+    """A source supporting grounded coaching guidance."""
+
+    citation_id: str
+    title: str
+    source: str
+    excerpt: str = ""
+
+
+@dataclass
+class GroundedCoachingResponse:
+    """Citation-backed coaching returned by Foundry IQ or local knowledge."""
+
+    answer: str
+    citations: list[KnowledgeCitation]
+    provider: str
+    query: str
+    activity_summary: list[str] = field(default_factory=list)

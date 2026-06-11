@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import html
+import sqlite3
 import time
+from uuid import uuid4
 
 import streamlit as st
 
 from src.answer_evaluator import evaluate_answer
+from src.history_store import save_mock_session
 from src.mock_interview import (
     MOCK_QUESTION_TOTAL,
     generate_mock_questions,
@@ -53,6 +56,8 @@ def _initialize_mock_state() -> None:
         "mock_index": 0,
         "mock_question_seconds": DEFAULT_QUESTION_SECONDS,
         "mock_question_started_at": 0.0,
+        "mock_session_id": "",
+        "mock_history_saved": False,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -280,6 +285,7 @@ def _submit_mock_answer(answer: str) -> None:
 
 def _render_results() -> None:
     summary = summarize_mock_interview(st.session_state.mock_answers)
+    _save_history_once(summary)
     st.markdown(
         f"""
         <div class="results-hero">
@@ -368,6 +374,8 @@ def _start_mock_interview() -> None:
     st.session_state.mock_index = 0
     st.session_state.mock_complete = False
     st.session_state.mock_started = True
+    st.session_state.mock_session_id = uuid4().hex
+    st.session_state.mock_history_saved = False
     st.session_state.mock_question_started_at = time.time()
     _clear_mock_answer_widgets()
 
@@ -379,7 +387,27 @@ def _reset_mock_interview() -> None:
     st.session_state.mock_answers = []
     st.session_state.mock_index = 0
     st.session_state.mock_question_started_at = 0.0
+    st.session_state.mock_session_id = ""
+    st.session_state.mock_history_saved = False
     _clear_mock_answer_widgets()
+
+
+def _save_history_once(summary: MockInterviewSummary) -> None:
+    if st.session_state.mock_history_saved:
+        return
+    try:
+        save_mock_session(
+            session_id=st.session_state.mock_session_id,
+            role_title=st.session_state.role_profile.detected_title,
+            summary=summary,
+        )
+    except (sqlite3.Error, OSError) as exc:
+        st.warning(
+            "Your results are shown below but could not be saved to local "
+            f"progress history: {exc}"
+        )
+        return
+    st.session_state.mock_history_saved = True
 
 
 def _clear_mock_answer_widgets() -> None:

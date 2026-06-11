@@ -1,9 +1,10 @@
 # Interview Prep Studio
 
-Interview Prep Studio is a private, local Streamlit application for students
+Interview Prep Studio is a local-first Streamlit application for students
 and early-career job seekers preparing for software engineering interviews.
 It turns a PDF, DOCX, or pasted resume and job description into a practical preparation
-workspace without using an AI model or sending personal data to an API.
+workspace with explainable local analysis and optional Microsoft Foundry IQ
+guidance backed by citations.
 
 ## What It Does
 
@@ -56,18 +57,46 @@ workspace without using an AI model or sending personal data to an API.
 - Tracks completed tasks in the browser session
 - Exports the complete preparation report as Markdown
 
-## No AI or API Keys
+### Grounded Coach
 
-The application is fully deterministic:
+- Connects to a Microsoft Foundry IQ knowledge base through Azure AI Search
+- Returns cited interview preparation guidance
+- Shows citation metadata and retrieval activity
+- Requires explicit consent before each cloud request
+- Sends only the reviewed coaching question, not the full resume or answers
+- Falls back to a bundled cited knowledge pack for offline demonstrations
 
-- No OpenAI dependency
-- No API key or `.env` file
-- No network request for resume analysis or answer scoring
-- No external storage or database
+### Progress Analytics
+
+- Saves completed mock-interview summaries in local SQLite
+- Displays readiness trends and latest category/rubric scores
+- Stores aggregate metrics only
+- Provides a delete-all-history privacy control
+
+### Judge Demo Mode
+
+- Prepares fictional sample data with one click
+- Provides a three-minute walkthrough
+- Explains the architecture and challenge requirement mapping
+- Keeps the demonstration usable without personal data
+
+## Privacy Model
+
+Core resume and interview analysis is deterministic and local:
+
+- No external request for resume parsing, matching, or answer scoring
+- No resume or answer text stored in SQLite
 - No hidden model deciding the score
+- Exact resume evidence is shown for every skill match
 
-The uploaded resume is processed in the active Streamlit session. Scores are
-preparation signals, not hiring predictions.
+Foundry IQ is optional and isolated:
+
+- It is configured through gitignored Streamlit secrets
+- It requires explicit user consent for each request
+- It receives only the visible coaching question
+- It returns grounded guidance with citations
+
+Scores are preparation signals, not hiring predictions.
 
 ## Answer Scoring
 
@@ -92,17 +121,30 @@ ai-interview-coach/
 ├── .streamlit/
 │   └── config.toml              # Theme and upload settings
 ├── pages/
-│   └── 1_Mock_Interview.py      # Dedicated mock interview page
+│   ├── 1_Mock_Interview.py      # Dedicated mock interview page
+│   ├── 2_Grounded_Coach.py      # Foundry IQ and local cited guidance
+│   ├── 3_Progress.py            # SQLite aggregate analytics
+│   └── 4_Judge_Demo.py          # Guided hackathon demonstration
+├── knowledge/                   # Curated attributed Markdown guidance
+├── docs/                        # Architecture, setup, demo, Copilot journal
+├── scripts/
+│   └── check_public_repo.py     # Basic tracked-file credential scan
 ├── sample_data/
 │   ├── sample_job_description.txt
 │   └── sample_resume.txt
 ├── src/
 │   ├── answer_evaluator.py      # Transparent answer rubric
 │   ├── job_analysis.py          # Role and job-post analysis
+│   ├── foundry_iq.py            # Azure AI Search knowledge retrieval
+│   ├── grounded_coach_ui.py     # Consent and citation experience
+│   ├── history_store.py         # Aggregate SQLite persistence
+│   ├── judge_demo_ui.py         # Fictional judge walkthrough
+│   ├── local_knowledge.py       # Offline cited knowledge retrieval
 │   ├── models.py                # Shared data classes
 │   ├── mock_interview.py        # Session analytics and question balance
 │   ├── mock_interview_ui.py     # Timed mock interview interface
 │   ├── preparation_plan.py      # Seven-day plan builder
+│   ├── progress_ui.py           # Score trends and privacy controls
 │   ├── question_generator.py    # Curated question selection
 │   ├── resume_analysis.py       # Resume readiness checks
 │   ├── resume_parser.py         # PDF, DOCX, and pasted-text validation
@@ -111,6 +153,7 @@ ai-interview-coach/
 │   └── ui.py                    # Streamlit interface and styling
 ├── tests/
 ├── requirements.txt
+└── requirements-dev.txt
 └── requirements-dev.txt
 ```
 
@@ -162,8 +205,10 @@ Open `http://localhost:8501` if the browser does not open automatically.
 5. Open **Mock Interview** from Streamlit's page navigation.
 6. Complete the timed 10-question interview.
 7. Review category charts and the overall readiness score.
-8. Check tasks in the **7-Day Plan**.
-9. Download the preparation report.
+8. Open **Grounded Coach** and show a cited answer.
+9. Open **Progress** to review aggregate trends.
+10. Check tasks in the **7-Day Plan**.
+11. Download the preparation report.
 
 The included resume and job description are fictional sample data.
 
@@ -225,6 +270,52 @@ Readiness labels are intentionally conservative:
 
 An incomplete interview is always labeled **In progress**.
 
+## Microsoft Foundry IQ
+
+The Creative Apps challenge requires a Microsoft IQ intelligence layer.
+Interview Prep Studio integrates the Foundry IQ knowledge-base retrieve API:
+
+```text
+POST /knowledgebases/{knowledge-base}/retrieve
+     ?api-version=2026-05-01-preview
+```
+
+Follow [`docs/FOUNDRY_IQ_SETUP.md`](docs/FOUNDRY_IQ_SETUP.md) to:
+
+1. Create or connect Azure AI Search.
+2. Create `interview-coaching-kb`.
+3. Add the documents in `knowledge/`.
+4. Configure `.streamlit/secrets.toml`.
+5. Verify a response with citations.
+
+The app works in local cited-knowledge mode until Foundry IQ is configured.
+For hackathon eligibility, configure the real resource and capture screenshots
+of the knowledge base, source connection, and cited retrieval result.
+
+## GitHub Copilot Requirement
+
+The challenge also requires meaningful GitHub Copilot use. The repository
+includes:
+
+- [Copilot repository instructions](.github/copilot-instructions.md)
+- [Development journal template](docs/COPILOT_DEVELOPMENT.md)
+
+You must personally use GitHub Copilot and add truthful prompts, screenshots,
+accepted or modified suggestions, and related commit hashes. Do not represent
+Codex-assisted work as GitHub Copilot usage.
+
+## Local Progress Database
+
+After a complete mock interview, the app writes aggregate data to:
+
+```text
+data/interview_history.db
+```
+
+The `data/` directory is gitignored. Stored fields include role title, score,
+category averages, rubric averages, timing, and readiness. Resume text, job
+description text, and answer text are never stored.
+
 ## Development
 
 Install development dependencies:
@@ -237,6 +328,12 @@ Run the tests:
 
 ```bash
 pytest -q
+```
+
+Scan tracked files for common credential patterns:
+
+```bash
+python3 scripts/check_public_repo.py
 ```
 
 The suite covers:
@@ -253,6 +350,9 @@ The suite covers:
 - Countdown timer boundaries
 - Category and rubric score aggregation
 - Interview readiness thresholds
+- Foundry IQ response and citation parsing
+- Local cited knowledge fallback
+- SQLite history save, replacement, retrieval, and deletion
 - Resume structure and quantified bullet checks
 - Job-family and internship detection
 - Seven-day plan generation
@@ -279,16 +379,27 @@ independently during a project review.
 - Keyword presence does not prove experience or proficiency.
 - Answer scoring evaluates structure, not technical truth.
 - Session progress is not saved after the Streamlit session ends.
-- Refreshing or resetting the session clears mock-interview answers.
+- In-progress mock answers are cleared when the Streamlit session resets.
+- Completed aggregate mock results remain local until deleted.
 - PDFs must contain extractable text.
 - Required/preferred classification depends on clear job-post section labels.
+- Foundry IQ cloud guidance requires a configured Azure resource.
+
+## Hackathon Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Foundry IQ setup](docs/FOUNDRY_IQ_SETUP.md)
+- [GitHub Copilot journal](docs/COPILOT_DEVELOPMENT.md)
+- [Three-minute demo](docs/DEMO_SCRIPT.md)
+- [Deployment](docs/DEPLOYMENT.md)
+- [Privacy notice](docs/PRIVACY.md)
+- [Submission checklist](docs/SUBMISSION_CHECKLIST.md)
 
 ## Possible Next Features
 
-- Save multiple practice sessions locally
 - Add more role families such as cybersecurity and product management
 - Add optional speech recording without cloud processing
-- Add local charts showing score improvement over time
+- Replace API-key Foundry authentication with Microsoft Entra identity
 
 ## License
 
