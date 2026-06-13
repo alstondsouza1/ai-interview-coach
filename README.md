@@ -6,6 +6,24 @@ It turns a PDF, DOCX, or pasted resume and job description into a practical prep
 workspace with explainable local analysis and optional Microsoft Foundry IQ
 guidance backed by citations.
 
+> Built for the Microsoft Agents League Hackathon 2026 (Creative Apps track).
+> Integrates **Microsoft Foundry IQ** for cited, grounded coaching. See
+> [`docs/FOUNDRY_IQ_SETUP.md`](docs/FOUNDRY_IQ_SETUP.md) and the
+> [GitHub Copilot development journal](docs/COPILOT_DEVELOPMENT.md).
+
+## Screenshots
+
+| Evidence-backed role fit | Foundry IQ grounded coaching |
+| --- | --- |
+| ![Role fit dashboard](docs/screenshots/role-fit.png) | ![Grounded coach with citations](docs/screenshots/grounded-coach.png) |
+
+| Timed mock interview | Progress analytics |
+| --- | --- |
+| ![Mock interview](docs/screenshots/mock-interview.png) | ![Progress trend](docs/screenshots/progress.png) |
+
+> Images live in [`docs/screenshots/`](docs/screenshots/). Add the PNGs named
+> there and these links resolve automatically.
+
 ## What It Does
 
 ### Role-fit dashboard
