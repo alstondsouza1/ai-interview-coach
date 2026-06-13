@@ -150,9 +150,18 @@ def _retrieve(query: str, settings) -> GroundedCoachingResponse:
 
 def _render_response(response: GroundedCoachingResponse) -> None:
     st.markdown("---")
+    is_foundry = response.provider == "Microsoft Foundry IQ"
+    if is_foundry:
+        st.success(
+            f"Live retrieval from **{response.provider}** "
+            f"({response.endpoint_host})."
+        )
+    else:
+        st.info(f"Grounded with **{response.provider}** (local cited fallback).")
+
     provider_column, citation_column = st.columns(2)
     provider_column.metric("Knowledge provider", response.provider)
-    citation_column.metric("Citations", len(response.citations))
+    citation_column.metric("Citations", response.citation_count)
     st.markdown("### Grounded guidance")
     st.markdown(response.answer)
 
@@ -170,10 +179,21 @@ def _render_response(response: GroundedCoachingResponse) -> None:
             if citation.excerpt:
                 st.write(citation.excerpt)
 
-    if response.activity_summary:
-        with st.expander("Retrieval activity"):
-            for item in response.activity_summary:
-                st.markdown(f"- {item}")
+    _render_retrieval_activity(response)
+
+
+def _render_retrieval_activity(response: GroundedCoachingResponse) -> None:
+    with st.expander("Retrieval activity", expanded=True):
+        host_column, kb_column, time_column, count_column = st.columns(4)
+        host_column.metric("Endpoint", response.endpoint_host or "Local")
+        kb_column.metric("Knowledge base", response.knowledge_base or "—")
+        time_column.metric(
+            "Elapsed",
+            f"{response.elapsed_ms} ms" if response.elapsed_ms is not None else "—",
+        )
+        count_column.metric("Citations", response.citation_count)
+        for item in response.activity_summary:
+            st.markdown(f"- {item}")
 
 
 def _apply_styles() -> None:

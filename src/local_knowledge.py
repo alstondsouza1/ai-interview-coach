@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import time
 from pathlib import Path
 
 from src.models import GroundedCoachingResponse, KnowledgeCitation
@@ -13,6 +14,7 @@ KNOWLEDGE_ROOT = Path(__file__).resolve().parent.parent / "knowledge"
 def retrieve_local_guidance(query: str, limit: int = 3) -> GroundedCoachingResponse:
     """Retrieve relevant passages from the bundled Markdown knowledge pack."""
 
+    started = time.perf_counter()
     clean_query = " ".join(query.split())
     query_terms = _tokens(clean_query)
     documents = []
@@ -43,12 +45,16 @@ def retrieve_local_guidance(query: str, limit: int = 3) -> GroundedCoachingRespo
         + "\n\n".join(guidance)
         + "\n\nApply the guidance only when it truthfully matches your own experience."
     )
+    elapsed_ms = int((time.perf_counter() - started) * 1000)
     return GroundedCoachingResponse(
         answer=answer,
         citations=citations,
         provider="Bundled local knowledge",
         query=clean_query,
         activity_summary=[f"Matched {len(citations)} local knowledge documents."],
+        endpoint_host="",
+        knowledge_base="knowledge/ (bundled Markdown pack)",
+        elapsed_ms=elapsed_ms,
     )
 
 

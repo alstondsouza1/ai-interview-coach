@@ -135,3 +135,10 @@ class GroundedCoachingResponse:
     provider: str
     query: str
     activity_summary: list[str] = field(default_factory=list)
+    endpoint_host: str = ""
+    knowledge_base: str = ""
+    elapsed_ms: int | None = None
+
+    @property
+    def citation_count(self) -> int:
+        return len(self.citations)

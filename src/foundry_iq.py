@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 from urllib.error import HTTPError, URLError
@@ -101,21 +102,29 @@ class FoundryIQClient:
             ],
             "includeActivity": True,
             "maxOutputDocuments": 8,
-            "maxOutputSize": 4_000,
+            "maxOutputSize": 8_000,
             "retrievalReasoningEffort": {"kind": "low"},
         }
+        started = time.perf_counter()
         response_data = self._post_json(payload)
+        elapsed_ms = int((time.perf_counter() - started) * 1000)
         answer = _extract_answer(response_data)
         citations = _extract_citations(response_data)
         activity = _extract_activity(response_data)
         if not answer:
             raise FoundryIQError("Foundry IQ returned no coaching content.")
+        # Diagnostics only ever expose the endpoint hostname and knowledge base
+        # name. The API key is never copied into the response or activity log.
+        endpoint_host = urlparse(self.settings.search_endpoint).hostname or ""
         return GroundedCoachingResponse(
             answer=answer,
             citations=citations,
             provider="Microsoft Foundry IQ",
             query=clean_query,
             activity_summary=activity,
+            endpoint_host=endpoint_host,
+            knowledge_base=self.settings.knowledge_base_name,
+            elapsed_ms=elapsed_ms,
         )
 
     def _post_json(self, payload: dict[str, Any]) -> dict[str, Any]:

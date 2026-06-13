@@ -70,8 +70,17 @@ The current API-key path is intended for the hackathon proof of concept.
 
 ## 5. Verify
 
-Open **Grounded Coach**, enable Foundry IQ, accept the consent checkbox, and
-ask:
+First, confirm the live connection from the command line. This reads
+`.streamlit/secrets.toml`, performs one real retrieve call, and prints
+diagnostics (endpoint host, knowledge base, elapsed time, citation count).
+The API key is never printed or logged:
+
+```bash
+python scripts/verify_foundry_iq.py
+```
+
+Then open **Grounded Coach**, enable Foundry IQ, accept the consent checkbox,
+and ask:
 
 ```text
 How should a student structure a teamwork answer for a software engineering internship?
@@ -82,7 +91,8 @@ Verify that:
 - Provider is `Microsoft Foundry IQ`
 - The answer contains grounded guidance
 - Source citations are displayed
-- Retrieval activity is visible
+- Retrieval activity shows the endpoint host, knowledge base, elapsed time,
+  and citation count
 
 ## Privacy Boundary
 
