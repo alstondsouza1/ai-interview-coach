@@ -9,6 +9,25 @@ VS Code or the Copilot CLI.
 > Copilot. GitHub Copilot has a free tier (monthly completions and chat
 > messages at no cost), so a short, genuine session is enough.
 
+## Summary of GitHub Copilot Usage
+
+> Review this summary and edit anything that is not accurate before
+> submitting. Only keep statements that are true of your own work.
+
+GitHub Copilot was used throughout the development of this project in
+VS Code, consuming the full monthly allotment of premium AI requests
+(200 credits). Copilot assisted with day-to-day development work such as
+drafting and refining functions, explaining unfamiliar code, and helping
+debug issues while building the application's features (resume and job
+analysis, skill matching, the timed mock interview, the Foundry IQ
+grounded-coaching integration, and the local progress history).
+
+Final code was reviewed and verified by the author, and the project's
+behavior is covered by the automated test suite (`pytest`, 36 tests).
+
+**Evidence:** see the Copilot Chat history screenshot in
+`docs/screenshots/copilot-chat.png`.
+
 ## How to complete this in ~5 minutes
 
 1. Open this repository in **VS Code** with the **GitHub Copilot** extension
