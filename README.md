@@ -10,6 +10,9 @@ guidance backed by citations.
 > Integrates **Microsoft Foundry IQ** for cited, grounded coaching. See
 > [`docs/FOUNDRY_IQ_SETUP.md`](docs/FOUNDRY_IQ_SETUP.md) and the
 > [GitHub Copilot development journal](docs/COPILOT_DEVELOPMENT.md).
+>
+> **Live demo:** _add the Streamlit Community Cloud URL after deploying_ ·
+> See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Screenshots
 
@@ -405,6 +408,8 @@ independently during a project review.
 
 ## Hackathon Documentation
 
+- [Project description](docs/PROJECT_DESCRIPTION.md)
+- [Innovation Studio submission copy](docs/INNOVATION_STUDIO_DESCRIPTION.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Foundry IQ setup](docs/FOUNDRY_IQ_SETUP.md)
 - [GitHub Copilot journal](docs/COPILOT_DEVELOPMENT.md)
@@ -412,6 +417,7 @@ independently during a project review.
 - [Deployment](docs/DEPLOYMENT.md)
 - [Privacy notice](docs/PRIVACY.md)
 - [Submission checklist](docs/SUBMISSION_CHECKLIST.md)
+- [Screenshot checklist](docs/screenshots/README.md)
 
 ## Possible Next Features
 

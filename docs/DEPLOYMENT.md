@@ -1,18 +1,30 @@
 # Deployment Guide
 
-## Streamlit Community Cloud
+## Streamlit Community Cloud (recommended for submission)
 
-1. Push the repository to GitHub.
-2. Open Streamlit Community Cloud.
-3. Create an app from:
+### 1. Push the repository to GitHub
 
-```text
-Repository: alstondsouza1/ai-interview-coach
-Branch: main
-Main file: app.py
+```bash
+git push
 ```
 
-4. In the app's **Secrets** settings, add:
+Confirm `main` is up to date and `.streamlit/secrets.toml` is **not** tracked.
+
+### 2. Create the app
+
+1. Sign in at https://share.streamlit.io with your GitHub account.
+2. Select **Create app → Deploy a public app from GitHub**.
+3. Configure:
+
+   ```text
+   Repository: alstondsouza1/ai-interview-coach
+   Branch:     main
+   Main file:  app.py
+   ```
+
+### 3. Add secrets in the dashboard (never in Git)
+
+In the app's **Settings → Secrets**, paste:
 
 ```toml
 [foundry_iq]
@@ -22,25 +34,40 @@ api_version = "2026-05-01-preview"
 api_key = "YOUR-REAL-KEY"
 ```
 
-Do not add `.streamlit/secrets.toml` to Git.
+> Paste the real key **only** into the Streamlit dashboard. Do not commit it and
+> do not put it in any tracked file. The local `.streamlit/secrets.toml` stays on
+> your machine only.
 
-## Deployment Verification
+### 4. Deploy and capture the URL
 
-Check every page:
+After the first build completes, copy the public URL (e.g.
+`https://<app-name>.streamlit.app`) and add it to:
 
-- Main workspace loads fictional sample data
-- Mock Interview starts and advances
-- Grounded Coach returns Foundry IQ citations
+- `README.md` (Live demo)
+- `docs/PROJECT_DESCRIPTION.md`
+- `docs/INNOVATION_STUDIO_DESCRIPTION.md`
+- The submission portal
+
+## Deployment verification
+
+Check every page on the deployed app:
+
+- Main workspace loads the fictional sample data
+- Mock Interview starts and advances through questions
+- Grounded Coach returns Foundry IQ citations with the live banner
 - Progress creates a local aggregate record
 - Judge Demo prepares the fictional workspace
 
-Streamlit Community Cloud storage can be ephemeral. For a permanent production
-history, replace local SQLite with an approved persistent database while
-preserving the aggregate-only privacy model.
+If Foundry IQ is misconfigured on the host, Grounded Coach falls back to the
+bundled cited knowledge pack — re-check the dashboard secret if you do not see
+the "Live retrieval from Microsoft Foundry IQ" banner.
 
-## Environment Limitations
+## Notes & limitations
 
-- PDF files must contain extractable text.
+- Streamlit Community Cloud storage is **ephemeral**: the SQLite progress history
+  may reset between restarts. This is acceptable for the demo and preserves the
+  aggregate-only privacy model.
+- PDF resumes must contain extractable text (no OCR).
 - Foundry IQ requests need outbound access to Azure AI Search.
-- The current Foundry authentication uses a secret API key.
-- Production deployments should migrate to Microsoft Entra identity.
+- The current Foundry authentication uses an API key. For production, migrate to
+  Microsoft Entra identity and assign the app the Search Index Data Reader role.

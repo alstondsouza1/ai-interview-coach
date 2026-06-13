@@ -11,22 +11,24 @@ VS Code or the Copilot CLI.
 
 ## Summary of GitHub Copilot Usage
 
-> Review this summary and edit anything that is not accurate before
-> submitting. Only keep statements that are true of your own work.
+> ⚠️ **CONFIRM BEFORE SUBMITTING.** Write this summary yourself from your own,
+> real GitHub Copilot usage. Only include statements that are true. Do not
+> represent assistance from any other AI tool as GitHub Copilot.
 
-GitHub Copilot was used throughout the development of this project in
-VS Code, consuming the full monthly allotment of premium AI requests
-(200 credits). Copilot assisted with day-to-day development work such as
-drafting and refining functions, explaining unfamiliar code, and helping
-debug issues while building the application's features (resume and job
-analysis, skill matching, the timed mock interview, the Foundry IQ
-grounded-coaching integration, and the local progress history).
+<!-- FILL IN: 2–4 true sentences describing how you actually used GitHub
+     Copilot on this project (which surfaces — Chat / inline completions —
+     and which areas it helped with). A short, genuine session is enough.
 
-Final code was reviewed and verified by the author, and the project's
-behavior is covered by the automated test suite (`pytest`, 39 tests).
+     Suggested skeleton (edit every clause to match reality, including the
+     credit figure if you cite one — leave it out if you are unsure):
+
+     "GitHub Copilot was used in VS Code while building this project. It
+     assisted with <real examples: e.g. drafting helper functions, explaining
+     code, debugging>. Final code was reviewed and verified by the author, and
+     behavior is covered by the test suite (pytest, 39 tests)." -->
 
 **Evidence:** see the Copilot Chat history screenshot in
-`docs/screenshots/copilot-chat.png`.
+`docs/screenshots/copilot-chat.png` (add it after your session).
 
 ## How to complete this in ~5 minutes
 
