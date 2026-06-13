@@ -20,7 +20,7 @@ In Microsoft Foundry:
 Suggested name:
 
 ```text
-interview-prep-search
+interview-prep-studio-srch
 ```
 
 ## 2. Create the knowledge base
@@ -56,7 +56,7 @@ Fill in:
 
 ```toml
 [foundry_iq]
-search_endpoint = "https://interview-prep-search.search.windows.net"
+search_endpoint = "https://interview-prep-studio-srch.search.windows.net"
 knowledge_base_name = "interview-coaching-kb"
 api_version = "2026-05-01-preview"
 api_key = "YOUR-AZURE-AI-SEARCH-ADMIN-KEY"

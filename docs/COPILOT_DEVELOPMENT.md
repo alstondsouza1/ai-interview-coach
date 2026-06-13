@@ -23,7 +23,7 @@ analysis, skill matching, the timed mock interview, the Foundry IQ
 grounded-coaching integration, and the local progress history).
 
 Final code was reviewed and verified by the author, and the project's
-behavior is covered by the automated test suite (`pytest`, 36 tests).
+behavior is covered by the automated test suite (`pytest`, 39 tests).
 
 **Evidence:** see the Copilot Chat history screenshot in
 `docs/screenshots/copilot-chat.png`.
